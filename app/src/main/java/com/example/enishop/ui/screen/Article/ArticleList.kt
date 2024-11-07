@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,12 +43,12 @@ fun ArticleListScreen(
     navController: NavController
 ) {
     var articles by remember { mutableStateOf(articleRepository.getAllArticles()) }
-
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
     val categories = listOf("electronics", "jewelery", "men's clothing", "women's clothing")
+    var searchQuery by remember { mutableStateOf("") }
 
-    val filteredArticles = articles.filter { article ->
+    var filteredArticles = articles.filter { article ->
         (selectedCategory == null || article.category == selectedCategory) &&
                 (!showFavoritesOnly || article.isFavorite)
     }
@@ -74,6 +75,13 @@ fun ArticleListScreen(
         Column(
             modifier = modifier.padding(innerPadding)
         ) {
+            SearchBar(
+                searchQuery = searchQuery,
+                onSearchQueryChanged = { query ->
+                    searchQuery = query
+                    filteredArticles = articles.filter { it.name.contains(searchQuery, ignoreCase = true) }
+                }
+            )
             CategoryFilter(
                 categories = categories,
                 selectedCategory = selectedCategory,
@@ -158,6 +166,24 @@ fun ArticleListScreen(
     }
 }
 
+@Composable
+fun SearchBar(
+    searchQuery: String,
+    onSearchQueryChanged: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = onSearchQueryChanged,
+        label = { Text("Find articles by name") },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        singleLine = true,
+        leadingIcon = {
+            Icon(Icons.Default.Search, contentDescription = "Rechercher")
+        }
+    )
+}
 
 @Composable
 fun CategoryFilter(
