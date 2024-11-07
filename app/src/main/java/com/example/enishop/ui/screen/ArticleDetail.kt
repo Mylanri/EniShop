@@ -1,6 +1,5 @@
 package com.example.enishop.ui.screen
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.enishop.bo.Article
 import com.example.enishop.ui.common.TopBar
@@ -32,14 +32,15 @@ import com.example.enishop.utils.DateConverter
 fun ArticleDetailScreen(
     modifier: Modifier = Modifier,
     article: Article,
+    navController: NavController
 ) {
     Scaffold(
-        topBar = { TopBar() }
+        topBar = { TopBar(navController = navController) }
     ) {
         Column(
             modifier = modifier.padding(it)
         ) {
-            ArticleDetail(article = article)
+            ArticleDetail(article)
         }
     }
 }

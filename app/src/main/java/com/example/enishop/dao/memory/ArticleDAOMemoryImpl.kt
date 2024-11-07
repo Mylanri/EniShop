@@ -38,4 +38,18 @@ class ArticleDAOMemoryImpl : ArticleDAO {
     override fun findAll(): List<Article> {
         return articlesInMemory
     }
+
+    override fun update(article: Article) {
+        val index = articlesInMemory.indexOfFirst { it.id == article.id }
+        if (index != -1) {
+            articlesInMemory[index] = article
+        }
+    }
+
+    override fun delete(article: Article) {
+        val isDeleted = articlesInMemory.remove(article)
+        if (!isDeleted) {
+            throw IllegalArgumentException("Article not found")
+        }
+    }
 }
