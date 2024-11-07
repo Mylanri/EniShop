@@ -1,5 +1,7 @@
-package com.example.enishop.ui.screen
+package com.example.enishop.ui.screen.Article
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,16 +11,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,7 +41,15 @@ fun ArticleDetailScreen(
     navController: NavController
 ) {
     Scaffold(
-        topBar = { TopBar(navController = navController) }
+        topBar = {
+            TopBar(
+                navController = navController,
+                drawerState = DrawerState(DrawerValue.Closed),
+                onLogout = {},
+                darkTheme = false,
+                onThemeToggle = {}
+            )
+        }
     ) {
         Column(
             modifier = modifier.padding(it)
@@ -107,14 +121,26 @@ fun ArticleDetail(article: Article) {
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
+        val isFavorite = remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        LaunchedEffect(isFavorite.value) {
+            if (isFavorite.value) {
+                Toast.makeText(context, "Ajouté aux favoris", Toast.LENGTH_SHORT).show()
+                Log.i("ArticleCreationForm", "Article ajouté aux favoris")
+            } else {
+                Toast.makeText(context, "Retirer des favoris", Toast.LENGTH_SHORT).show()
+                Log.i("ArticleCreationForm", "Article retiré des favoris")
+            }
+        }
         Row(
             modifier = Modifier.padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val isFavorite = remember { mutableStateOf(false) }
             Checkbox(
                 checked = isFavorite.value,
-                onCheckedChange = { isFavorite.value = it }
+                onCheckedChange = { newState ->
+                    isFavorite.value = newState
+                }
             )
             Text(
                 text = "Favori ?",

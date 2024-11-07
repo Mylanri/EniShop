@@ -9,9 +9,10 @@ data class Article(
     val price: Float,
     val urlImage: String,
     val category: String,
-    val date: Date
+    val date: Date,
+    var isFavorite: Boolean = false
 ) {
     override fun toString(): String {
-        return "Article(id=$id, name='$name', description='$description', price=$price, urlImage='$urlImage', category='$category', date=$date)"
+        return "Article(id=$id, name='$name', description='$description', price=$price, urlImage='$urlImage', category='$category', date=$date, isFavorite=$isFavorite)"
     }
 }
