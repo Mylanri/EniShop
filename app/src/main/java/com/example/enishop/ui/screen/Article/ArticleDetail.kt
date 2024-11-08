@@ -1,155 +1,111 @@
 package com.example.enishop.ui.screen.Article
 
-import android.util.Log
-import android.widget.Toast
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.enishop.bo.Article
+import com.example.enishop.repository.ArticleRepository
 import com.example.enishop.ui.common.TopBar
-import com.example.enishop.utils.DateConverter
+import com.example.enishop.vm.ArticleDetailViewModel
 
 @Composable
 fun ArticleDetailScreen(
-    modifier: Modifier = Modifier,
-    article: Article,
-    navController: NavController
+    modifier: Modifier = Modifier, article: Article, navController: NavController
 ) {
-    Scaffold(
-        topBar = {
-            TopBar(
-                navController = navController,
-                drawerState = DrawerState(DrawerValue.Closed),
-                onLogout = {},
-                darkTheme = false,
-                onThemeToggle = {}
-            )
-        }
-    ) {
+
+    Scaffold(topBar = {
+        TopBar(
+            navController = navController,
+            onLogout = {},
+            darkTheme = false,
+            onThemeToggle = {})
+    }) {
+
         Column(
             modifier = modifier.padding(it)
         ) {
-            ArticleDetail(article)
+            ArticleDetail(article.id, navController = NavController(LocalContext.current))
         }
     }
 }
 
 @Composable
-fun ArticleDetail(article: Article) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = article.name,
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 30.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+fun ArticleDetail(
+    articleId: Long,
+    navController: NavController,
+    articleRepository: ArticleRepository = ArticleRepository(),
+) {
+    val viewModel: ArticleDetailViewModel = viewModel(
+        factory = ArticleDetailViewModel.ArticleDetailViewModelFactory(articleRepository)
+    )
+    LaunchedEffect(articleId) {
+        viewModel.loadArticle(articleId)
+    }
+    val article = viewModel.article
+    val context = LocalContext.current
+    article?.let {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AsyncImage(
-                model = article.urlImage,
-                contentDescription = "Image of ${article.name}",
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(bottom = 8.dp)
-                    .fillMaxWidth()
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = article.description,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = 16.sp,
-                color = Color.Black
-            )
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = it.name,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.clickable {
+                    val searchIntent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://www.google.com/search?q=${it.name} Eni-Shop")
+                    )
+                    context.startActivity(searchIntent)
+                })
+            Spacer(modifier = Modifier.height(8.dp))
+            it.urlImage?.let { imageUrl ->
+                Image(
+                    painter = rememberAsyncImagePainter(imageUrl),
+                    contentDescription = "Image de l'article",
+                    modifier = Modifier.size(128.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Price: ${String.format("%.2f", article.price)} €",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.Black
-                ),
+                text = "Price : ${it.price} €",
+                modifier = Modifier.testTag("ARTICLE_PRICE_TAG")
             )
-            Text(
-                text = "Date: ${DateConverter.convertDateToSimpleString(article.date)}",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.sp,
-                    color = Color.Black
-                ),
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        val isFavorite = remember { mutableStateOf(false) }
-        val context = LocalContext.current
-        LaunchedEffect(isFavorite.value) {
-            if (isFavorite.value) {
-                Toast.makeText(context, "Ajouté aux favoris", Toast.LENGTH_SHORT).show()
-                Log.i("ArticleCreationForm", "Article ajouté aux favoris")
-            } else {
-                Toast.makeText(context, "Retirer des favoris", Toast.LENGTH_SHORT).show()
-                Log.i("ArticleCreationForm", "Article retiré des favoris")
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = it.description)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = {
+                navController.navigate("articleList")
+            }) {
+                Text(text = "Back to articles")
             }
         }
-        Row(
-            modifier = Modifier.padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = isFavorite.value,
-                onCheckedChange = { newState ->
-                    isFavorite.value = newState
-                }
-            )
-            Text(
-                text = "Favori ?",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 16.sp,
-                    color = Color.Black
-                ),
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
+    } ?: run {
+        Text(text = "Chargement en cours...")
     }
 }

@@ -35,7 +35,6 @@ fun ArticleAddScreen(
         topBar = {
             TopBar(
                 navController,
-                drawerState = DrawerState(DrawerValue.Closed),
                 onLogout = {},
                 darkTheme = false,
                 onThemeToggle = {}

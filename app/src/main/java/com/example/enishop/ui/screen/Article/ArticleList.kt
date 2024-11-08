@@ -1,7 +1,5 @@
 package com.example.enishop.ui.screen.Article
 
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,39 +26,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
 import com.example.enishop.bo.Article
-import com.example.enishop.repository.ArticleRepository
 import com.example.enishop.ui.common.TopBar
+import com.example.enishop.vm.ArticleListViewModel
+import android.widget.Toast
 
 @Composable
 fun ArticleListScreen(
     modifier: Modifier = Modifier,
-    articleRepository: ArticleRepository,
     onEditArticle: (Article) -> Unit,
     onAddArticle: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    viewModel: ArticleListViewModel = viewModel(factory = ArticleListViewModel.Factory)
 ) {
-    var articles by remember { mutableStateOf(articleRepository.getAllArticles()) }
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
-    var showFavoritesOnly by remember { mutableStateOf(false) }
-    val categories = listOf("electronics", "jewelery", "men's clothing", "women's clothing")
+    val articles by viewModel.articles.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val filteredArticles by viewModel.filteredArticles.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
-
-    var filteredArticles = articles.filter { article ->
-        (selectedCategory == null || article.category == selectedCategory) &&
-                (!showFavoritesOnly || article.isFavorite)
-    }
-
-    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
-    var articleToDelete by remember { mutableStateOf<Article?>(null) }
 
     Scaffold(
         topBar = {
             TopBar(
-                navController = navController,
-                drawerState = DrawerState(DrawerValue.Open),
+                navController,
                 onLogout = {},
                 darkTheme = false,
                 onThemeToggle = {}
@@ -75,36 +65,59 @@ fun ArticleListScreen(
         Column(
             modifier = modifier.padding(innerPadding)
         ) {
+            // Search Bar
             SearchBar(
                 searchQuery = searchQuery,
                 onSearchQueryChanged = { query ->
                     searchQuery = query
-                    filteredArticles = articles.filter { it.name.contains(searchQuery, ignoreCase = true) }
+                    viewModel.setSearchQuery(query)
                 }
             )
+
+            // Filter by Category
             CategoryFilter(
                 categories = categories,
-                selectedCategory = selectedCategory,
+                selectedCategory = null,
                 onCategorySelected = { category ->
-                    selectedCategory = if (selectedCategory == category) null else category
+                    viewModel.setSelectedCategory(category)
                 }
             )
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = showFavoritesOnly,
-                    onCheckedChange = { showFavoritesOnly = it }
-                )
+                // Icône dynamique avec IconButton pour activer ou désactiver l'état de favoris
+                IconButton(
+                    onClick = {
+                        // Inverser l'état du favori
+                        viewModel.setShowFavoritesOnly(!viewModel._showFavoritesOnly)
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (viewModel._showFavoritesOnly) {
+                            Icons.Filled.Favorite  // Cœur rempli quand l'état est activé
+                        } else {
+                            Icons.Filled.FavoriteBorder  // Cœur vide quand l'état est désactivé
+                        },
+                        contentDescription = "Favoris",
+                        modifier = Modifier.padding(start = 8.dp),
+                        tint = if (viewModel._showFavoritesOnly) Color.Red else Color.Gray // Facultatif : changer la couleur
+                    )
+                }
+
+                // Texte pour expliquer ce que fait l'icône
                 Text(
                     text = "Favoris",
                     style = MaterialTheme.typography.bodyMedium,
                     fontSize = 16.sp
                 )
             }
+
+
+            // Display the articles
             LazyVerticalGrid(
                 modifier = Modifier.fillMaxSize(),
                 columns = GridCells.Fixed(2),
@@ -117,54 +130,21 @@ fun ArticleListScreen(
                         article = article,
                         onEditClick = { onEditArticle(article) },
                         onDeleteClick = {
-                            articleToDelete = article
-                            showDeleteConfirmationDialog = true
+                            viewModel.deleteArticle(article)
                         },
                         onFavoriteChange = { isFavorite ->
-                            article.isFavorite = isFavorite
-                            articles = articles.map {
-                                if (it.id == article.id) it.copy(isFavorite = isFavorite) else it
-                            }
-                        }
+                            viewModel.toggleFavorite(article)  // Mettre à jour le favori
+                            navController.popBackStack()
+                        },
+                        navController = navController
                     )
                 }
             }
         }
     }
-
-    // Popup de confirmation de suppression
-    if (showDeleteConfirmationDialog && articleToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmationDialog = false },
-            title = { Text("Confirmation") },
-            text = { Text("Êtes-vous sûr de vouloir supprimer cet article ?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        // Supprimer l'article et fermer la popup
-                        articleRepository.deleteArticle(articleToDelete!!)
-                        navController.popBackStack()
-                        articles = articleRepository.getAllArticles()
-                        showDeleteConfirmationDialog = false
-                        Log.i("ArticleListScreen", "Article supprimé: ${articleToDelete!!}")
-                    }
-                ) {
-                    Text("Oui")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        // Fermer la popup sans supprimer l'article
-                        showDeleteConfirmationDialog = false
-                    }
-                ) {
-                    Text("Non")
-                }
-            }
-        )
-    }
 }
+
+
 
 @Composable
 fun SearchBar(
@@ -199,7 +179,7 @@ fun CategoryFilter(
             val category = categories[index]
             TextButton(
                 onClick = {
-                    onCategorySelected(category)
+                    onCategorySelected(category)  // Cette méthode va gérer la sélection/désélection
                 },
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.small)
@@ -232,18 +212,22 @@ fun CategoryFilter(
     }
 }
 
-
 @Composable
 fun ArticleItem(
     article: Article,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    onFavoriteChange: (Boolean) -> Unit
+    onFavoriteChange: (Boolean) -> Unit,
+    navController: NavController
 ) {
+    val context = LocalContext.current  // Utiliser LocalContext pour afficher un Toast
+
     val cardModifier = Modifier
         .padding(4.dp)
         .size(220.dp)
-        .clickable { onEditClick() }
+        .clickable {
+            navController.navigate("articleDetail/${article.id}")
+        }
 
     Card(
         modifier = cardModifier
@@ -266,11 +250,18 @@ fun ArticleItem(
                     modifier = Modifier.weight(1f),
                     fontSize = 16.sp
                 )
-                val navController = NavController(LocalContext.current)
+
+                // Button for favorite
                 IconButton(
                     onClick = {
-                        onFavoriteChange(!article.isFavorite)
-                        navController.popBackStack();
+                        onFavoriteChange(!article.isFavorite)  // Toggle favorite
+                        // Afficher un Toast pour confirmer
+                        val message = if (article.isFavorite) {
+                            "Article retiré des favoris"
+                        } else {
+                            "Article ajouté aux favoris"
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.padding(start = 8.dp)
                 ) {

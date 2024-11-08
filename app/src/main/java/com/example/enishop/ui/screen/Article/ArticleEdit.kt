@@ -19,7 +19,6 @@ import com.example.enishop.repository.ArticleRepository
 import com.example.enishop.ui.common.TopBar
 import java.util.Date
 
-
 @Composable
 fun ArticleEditScreen(
     modifier: Modifier = Modifier,
@@ -31,8 +30,7 @@ fun ArticleEditScreen(
     Scaffold(
         topBar = {
             TopBar(
-                navController = navController,
-                drawerState = DrawerState(DrawerValue.Closed),
+                navController,
                 onLogout = {},
                 darkTheme = false,
                 onThemeToggle = {}
